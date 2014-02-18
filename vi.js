@@ -630,6 +630,11 @@ function _msie_paste() {
 	event.returnValue = false;
 	term_paste(false, window.clipboardData.getData("Text", chunk));
 }
+function _nonie_paste() {
+	var chunk = "new content associated with this object";
+	event.returnValue = false;
+	term_paste(false, event.clipboardData.getData("text/plain"));
+}
 function _backing_paste() {
 	_update_backing();
 	if (!doing_backing_paste) {
@@ -3472,52 +3477,6 @@ function _redraw_term() {
 	}
 	zx = undefined; // break
 
-	if (!spelling && tospell > 0) {
-		spelling = true;
-		var xh = _xhttp();
-		osp=osp.substr(0,osp.length-1);
-		xh.open("GET", "spell.cgi?"+osp, true);
-		xh.onreadystatechange = function() {
-			if (xh.readyState == 4) {
-				var j;
-				var a = xh.responseText.split("\n");
-				for (j = 0; j < a.length; j++) {
-					var kp = a[j].split("=", 2);
-					var k, v;
-					if (kp.length == 2) {
-						k = kp[0];
-						v = kp[1];
-					} else if (kp.length == 1) {
-						k = kp[0];
-						v = '';
-					} else {
-						k = a[j];
-						v = '';
-					}
-					if (k.substr(0,1) != 'c') continue;
-					k = k.substr(1, k.length-1);
-					var term = spellcheck[k];
-					if (v == undefined || v == '') {
-						brokenwords[term] = true;
-						suggestions[term] = new Array();
-					} else if (v == term) {
-						safewords[term] = true;
-					} else {
-						safewords[v] = true;
-						if (!suggestions[term]) {
-							suggestions[term] = new Array();
-						}
-						suggestions[term][ suggestions[term].length ] = v;
-						brokenwords[term] = true;
-					}
-				}
-				spelling=false;
-				window.setTimeout(term_redraw,10);
-				xh = undefined; // break (deferred)
-			}
-		};
-		xh.send(undefined);
-	}
 	if (cursory == (h-1)) {
 		tools.style.display = 'none';
 	} else {
@@ -3708,7 +3667,8 @@ function editor(t) {
 	_cbd('selectstart', _cancel_ev);
 	_cbd('keydown', term_keyfix);
 	_cbd('keypress', term_keypress);
-	_cbd('paste', _msie_paste);
+  if (window.clipboardData) { _cbd('paste', _msie_paste); }
+  else { _cbd('paste', _nonie_paste); }
 	_cbd('click', _mouseclick);
 	_cbd('mousedown', _mousedown);
 	_cbd('mousemove', _mousemove);
